@@ -1,0 +1,263 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import { BaseTooltip } from "@/components/common/BaseTooltip";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/common/shadcn/card";
+import { useChartAnimation } from "@/hooks/useChartAnimation";
+import { useWindowDimensions } from "@/hooks/useWindowDimensions";
+import { BREAKPOINTS } from "@/styles/breakpoints";
+
+/** Tooltip payload item structure. */
+interface TooltipPayload {
+  dataKey: string;
+  name?: string;
+  value?: number;
+  color?: string;
+}
+
+/** Props for area chart tooltip component. */
+interface AreaTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+/**
+ * Custom tooltip for displaying views and visitors data.
+ *
+ * @component
+ */
+const AreaTooltip = ({ active, payload, label }: AreaTooltipProps) => {
+  if (!active || !payload || payload.length === 0 || !label) return null;
+
+  const viewsEntry = payload.find((p) => p.dataKey === "views") || payload[0];
+  const visitorsEntry =
+    payload.find((p) => p.dataKey === "uniqueVisitors") || payload[1];
+
+  return (
+    <BaseTooltip title={label}>
+      {viewsEntry && (
+        <p className="px-3 pb-1 text-primaryText flex items-center justify-between">
+          <span>
+            <span
+              className="w-2 h-2 mr-2 rounded inline-block"
+              style={{ backgroundColor: viewsEntry.color }}
+            />
+            {`${viewsEntry.name}:   `}
+          </span>
+          <span className="pl-[0.7rem]">
+            {Intl.NumberFormat("us").format(viewsEntry.value ?? 0)}
+          </span>
+        </p>
+      )}
+      {visitorsEntry && (
+        <p className="px-3 pb-1 text-primaryText flex items-center justify-between">
+          <span>
+            <span
+              className="w-2 h-2 mr-2 rounded inline-block"
+              style={{ backgroundColor: visitorsEntry.color }}
+            />
+            {`${visitorsEntry.name}:   `}
+          </span>
+          <span className="pl-[0.7rem]">
+            {Intl.NumberFormat("us").format(visitorsEntry.value ?? 0)}
+          </span>
+        </p>
+      )}
+    </BaseTooltip>
+  );
+};
+
+/** Props for custom legend component. */
+interface CustomLegendProps {
+  payload?: Array<{
+    value: string;
+    color: string;
+  }>;
+}
+
+/**
+ * Custom legend with colored indicators.
+ *
+ * @component
+ */
+const CustomLegend = ({ payload }: CustomLegendProps) => {
+  return (
+    <div
+      className="flex flex-row justify-end text-white w-full mb-6 whitespace-nowrap"
+      style={{ gap: "1rem" }}
+    >
+      {payload?.map((entry, index) => (
+        <div key={`legend-${index}`} className="flex items-center">
+          <div
+            className="w-3 h-3 mr-2"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-sm text-primaryText">{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/**
+ * Area chart displaying website views and unique visitors over time.
+ * Uses Recharts with gradient fills and custom tooltip.
+ *
+ * @component
+ */
+export const AreaChartComponent = () => {
+  const t = useTranslations("charts");
+  const { width: windowWidth } = useWindowDimensions();
+  const { shouldAnimate, animationBegin, isReady } =
+    useChartAnimation("charts");
+
+  const chartdata = [
+    { date: "Jan", views: 1983, uniqueVisitors: 1654 },
+    { date: "Feb", views: 2543, uniqueVisitors: 1320 },
+    { date: "Mar", views: 3221, uniqueVisitors: 1845 },
+    { date: "Apr", views: 2896, uniqueVisitors: 1990 },
+    { date: "May", views: 3577, uniqueVisitors: 1530 },
+    { date: "Jun", views: 3188, uniqueVisitors: 2421 },
+  ];
+
+  return (
+    <Card id="areaChart" className="w-full h-full">
+      <CardHeader variant="divider" className="px-9">
+        <CardTitle>{t("areaChart")}</CardTitle>
+      </CardHeader>
+      <CardContent className="px-9">
+        <div className="h-64 xsm:h-80 1xl:h-96 3xl:h-112 w-full">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            initialDimension={{ width: 320, height: 200 }}
+          >
+            <AreaChart
+              accessibilityLayer={false}
+              data={isReady ? chartdata : []}
+              margin={{
+                top: 10,
+                right: windowWidth > BREAKPOINTS.md ? 30 : 10,
+                left:
+                  windowWidth > BREAKPOINTS["1xl"]
+                    ? 20
+                    : windowWidth > BREAKPOINTS.xsm
+                      ? 5
+                      : -5,
+                bottom: 5,
+              }}
+            >
+              <defs>
+                <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor={"var(--color-chartPrimaryDisabled)"}
+                    stopOpacity={0.3}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor={"var(--color-chartPrimaryDisabled)"}
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+                <linearGradient
+                  id="colorUniqueVisitors"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="5%"
+                    stopColor={"var(--color-chartPrimaryFill)"}
+                    stopOpacity={0.3}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor={"var(--color-chartPrimaryFill)"}
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={"var(--color-chartPrimaryGrid)"}
+              />
+              <XAxis
+                dataKey="date"
+                axisLine={{ stroke: "var(--color-chartAxisLine)" }}
+                tickLine={false}
+                tick={{ fill: "var(--color-chartAxisText)", fontSize: 12 }}
+              />
+              <YAxis
+                axisLine={{ stroke: "var(--color-chartAxisLine)" }}
+                tickLine={false}
+                tick={{ fill: "var(--color-chartAxisText)", fontSize: 12 }}
+                width={
+                  windowWidth > 0 && windowWidth < BREAKPOINTS.xsm ? 45 : 60
+                }
+                tickFormatter={(value) => Intl.NumberFormat("us").format(value)}
+              />
+              <Tooltip
+                content={<AreaTooltip />}
+                isAnimationActive={false}
+                cursor={{
+                  fill: "rgba(255,255,255,0.05)",
+                  stroke: "var(--color-chartVerticalLine)",
+                }}
+              />
+              <Legend
+                verticalAlign="top"
+                align="center"
+                content={<CustomLegend />}
+              />
+              <Area
+                type="linear"
+                dataKey="views"
+                name="Views"
+                stroke={"var(--color-chartPrimaryDisabled)"}
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorViews)"
+                isAnimationActive={shouldAnimate}
+                animationBegin={animationBegin}
+                animationDuration={800}
+                animationEasing="ease-out"
+              />
+              <Area
+                type="linear"
+                dataKey="uniqueVisitors"
+                name="Unique visitors"
+                stroke={"var(--color-chartPrimaryFill)"}
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorUniqueVisitors)"
+                isAnimationActive={shouldAnimate}
+                animationBegin={animationBegin}
+                animationDuration={800}
+                animationEasing="ease-out"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
